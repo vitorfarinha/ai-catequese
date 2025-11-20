@@ -1,97 +1,152 @@
 "use client";
-import { useState, useRef, useEffect } from 'react';
 
-export default function Page(){
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Olá! Sou o teu tutor. Envia uma pergunta e guiarei o teu raciocínio.'}
-  ]);
-  const [text, setText] = useState('');
-  const [fileIds, setFileIds] = useState([]);
-  const fileRef = useRef();
-  const chatRef = useRef();
+import { useState, useRef } from "react";
 
-  useEffect(()=>{
-    chatRef.current?.scrollTo(0, chatRef.current.scrollHeight);
-  }, [messages]);
+export default function Home() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [files, setFiles] = useState([]);
+  const bottomRef = useRef(null);
 
-  async function handleUpload(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    const form = new FormData();
-    form.append('file', file);
-    try{
-      const res = await fetch('/api/upload', { method:'POST', body: form });
-      const json = await res.json();
-      if(json.fileId){
-        setFileIds(prev=>[...prev, json.fileId]);
-      } else {
-        alert('Upload falhou');
-      }
-    } catch(err){
-      console.error(err);
-      alert('Erro no upload');
-    }
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
+  async function handleFileUpload(e) {
+    const selected = Array.from(e.target.files);
+    setFiles(prev => [...prev, ...selected]);
   }
 
-  async function send(){
-    if(!text.trim()) return;
-    const userMsg = { role:'user', content:text };
-    const newMsgs = [...messages, userMsg];
-    setMessages(newMsgs);
-    setText('');
-    try{
-      const res = await fetch('/api/chat', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ messages: newMsgs, fileIds })
+  async function sendMessage() {
+    if (!input.trim() && files.length === 0) return;
+
+    const userMessage = { role: "user", content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+    scrollToBottom();
+
+    // Upload files if any
+    let uploadedFileIds = [];
+
+    if (files.length > 0) {
+      const formData = new FormData();
+      files.forEach(f => formData.append("files", f));
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      const data = await res.json();
-      const bot = { role:'assistant', content: data.reply?.content || data.reply || 'Sem resposta' };
-      setMessages(m=>[...m, bot]);
-    } catch(err){
-      console.error(err);
-      setMessages(m=>[...m, { role:'assistant', content:'Ocorreu um erro. Tenta novamente.' }]);
+
+      const uploadData = await uploadRes.json();
+      uploadedFileIds = uploadData.fileIds || [];
+      setFiles([]); // clear after upload
     }
+
+    // Call chat API
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [...messages, userMessage],
+        fileIds: uploadedFileIds,
+      }),
+    });
+
+    const data = await res.json();
+
+    const assistantMessage = {
+      role: "assistant",
+      content: data.reply,
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+    setIsLoading(false);
+    scrollToBottom();
   }
 
   return (
-    <div className="container">
-      <div className="header">
-        <div className="brand">SAIS AI Tutor</div>
-        <div style={{flex:1}} />
-        <div className="small"></div>
-      </div>
+    <main className="flex flex-col items-center justify-between min-h-screen p-4 bg-gray-100">
+      <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg flex flex-col p-4">
+        
+        <h1 className="text-xl font-semibold mb-4 text-center">
+          School AI Tutor
+        </h1>
 
-      <div className="chat" ref={chatRef}>
-        <div className="upload-area" onClick={()=>fileRef.current.click()}>
-          📎 Clique para carregar documento (PDF / imagem / DOCX)
+        {/* CHAT WINDOW */}
+        <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-[70vh] pr-2">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-3 rounded-lg max-w-[80%] ${
+                msg.role === "user"
+                  ? "ml-auto bg-blue-600 text-white"
+                  : "mr-auto bg-gray-200"
+              }`}
+            >
+              {msg.content}
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="thinking mr-auto px-3 py-2 bg-gray-200 rounded-lg max-w-[80%]">
+              Thinking…
+            </div>
+          )}
+
+          <div ref={bottomRef} />
         </div>
-        <input type="file" ref={fileRef} style={{display:'none'}} onChange={handleUpload} />
 
-        {messages.map((m, i)=>(
-          <div key={i} className={'bubble ' + (m.role==='user' ? 'user' : 'bot')}>
-            {m.content}
+        {/* INPUT AREA */}
+        <div className="flex items-end gap-2 mt-2">
+
+          {/* UPLOAD BUTTON */}
+          <label className="cursor-pointer bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded transition">
+            📎 Add files
+            <input
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+
+          {/* TEXTAREA */}
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="Type your message…"
+            className="w-full p-3 border rounded-lg resize-none"
+            rows={2}
+          />
+
+          {/* SEND BUTTON */}
+          <button
+            onClick={sendMessage}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 transition"
+          >
+            Send
+          </button>
+        </div>
+
+        {/* SHOW SELECTED FILES */}
+        {files.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            Attached: {files.map(f => f.name).join(", ")}
           </div>
-        ))}
+        )}
 
       </div>
-
-      <div className="composer">
-        <textarea
-  value={input}
-  onChange={(e) => setInput(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }}
-  placeholder="Type your message..."
-  className="w-full p-3 border rounded-lg resize-none"
-  rows={2}
-/>
-        <button className="btn" onClick={send}>Enviar</button>
-      </div>
-    </div>
-)
+    </main>
+  );
 }
+
