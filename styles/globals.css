@@ -100,3 +100,16 @@ body{
   font-size:13px;
   color:var(--muted);
 }
+
+@keyframes fadeInOut {
+  0% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.thinking {
+  animation: fadeInOut 1.5s ease-in-out infinite;
+  font-style: italic;
+  color: #666;
+}
+
