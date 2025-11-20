@@ -2,17 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function Page() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hello — I'm your SAIS AI tutor. Ask a question and I'll guide your thinking."
+      content:
+        "Hello — I'm your SAIS AI Tutor. Ask a question and I'll guide your thinking."
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([]); // local File objects selected
   const [uploadedFileIds, setUploadedFileIds] = useState([]);
   const fileRef = useRef();
   const bottomRef = useRef();
@@ -21,10 +23,6 @@ export default function Page() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  function cleanText(text) {
-    return text.replace(/\n{3,}/g, "\n\n"); // limit multiple newlines
-  }
-
   function onFilesSelected(e) {
     const sel = Array.from(e.target.files || []);
     if (sel.length === 0) return;
@@ -32,6 +30,7 @@ export default function Page() {
   }
 
   async function uploadFilesSequentially(selectedFiles) {
+    // Upload files one by one to backend, returning array of fileIds
     const ids = [];
     for (const f of selectedFiles) {
       try {
@@ -55,18 +54,21 @@ export default function Page() {
   async function sendMessage() {
     if (!input.trim() && files.length === 0) return;
 
+    // Append user message locally
     const userMsg = { role: "user", content: input || "(uploaded file)" };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
+    // Upload selected files (if any)
     let newFileIds = [];
     if (files.length > 0) {
       newFileIds = await uploadFilesSequentially(files);
       setUploadedFileIds(prev => [...prev, ...newFileIds]);
-      setFiles([]);
+      setFiles([]); // clear selected file list after upload
     }
 
+    // Prepare payload for backend (backend will add the system prompt)
     const payloadMessages = [...messages, userMsg];
 
     try {
@@ -75,11 +77,13 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: payloadMessages,
-          fileIds: [...uploadedFileIds, ...newFileIds],
-        }),
+          fileIds: [...uploadedFileIds, ...newFileIds]
+        })
       });
 
       const json = await res.json();
+
+      // backend may return reply as string or object with content
       let replyText = "";
       if (!json) replyText = "No response from server.";
       else if (typeof json.reply === "string") replyText = json.reply;
@@ -112,147 +116,90 @@ export default function Page() {
   }
 
   return (
-    <main style={{ padding: 16, display: "flex", justifyContent: "center" }}>
-      <div style={{
-        width: "100%",
-        maxWidth: 900,
-        height: "80vh",
-        display: "flex",
-        flexDirection: "column",
-        borderRadius: 12,
-        overflow: "hidden",
-        boxShadow: "0 8px 30px rgba(2,6,23,0.08)",
-        background: "white"
-      }}>
-        <header style={{
-          padding: 14,
-          borderBottom: "1px solid #eef2f7",
-          display: "flex",
-          alignItems: "center"
-        }}>
-          <div style={{ fontWeight: 700 }}>SAIS AI Tutor</div>
+    <main className="page-root">
+    <div className="header-logo"><img src="/sais-estoril-vb.svg" alt="SAIS" /></div>
+      <div className="chat-shell">
+        <header className="chat-header">
+          <div className="brand">SAIS AI Tutor</div>
+          <div className="meta">v2</div>
         </header>
 
-        <section style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="chat-body" role="log" aria-live="polite">
           {messages.map((m, i) => (
-            <div key={i} style={{
-              alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-              background: m.role === "user" ? "#0ea5e9" : "#f3f4f6",
-              color: m.role === "user" ? "white" : "#0f172a",
-              padding: "10px 14px",
-              borderRadius: 10,
-              maxWidth: "80%",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word"
-            }}>
-              {m.role === "assistant" ? (
-                <ReactMarkdown>{cleanText(m.content)}</ReactMarkdown>
-              ) : (
-                cleanText(m.content)
-              )}
+            <div
+              key={i}
+              className={`message-row ${m.role === "user" ? "from-user" : "from-assistant"}`}
+            >
+              <div className="message-bubble">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+              </div>
             </div>
           ))}
 
           {isLoading && (
-            <div style={{
-              alignSelf: "flex-start",
-              background: "#f3f4f6",
-              padding: "10px 14px",
-              borderRadius: 10,
-              color: "#374151",
-              fontStyle: "italic",
-              animation: "fadeInOut 1.6s ease-in-out infinite"
-            }}>
-              Thinking…
+            <div className="message-row typing from-assistant">
+              <div className="message-bubble typing-bubble">
+                <div className="dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
             </div>
           )}
 
           <div ref={bottomRef} />
-        </section>
+        </div>
 
-        <div style={{ padding: 12, borderTop: "1px solid #eef2f7", display: "flex", gap: 8, alignItems: "flex-end" }}>
-          <label style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 10px",
-            borderRadius: 8,
-            background: "#f1f5f9",
-            cursor: "pointer"
-          }}>
-            📎 Add files
-            <input
-              ref={fileRef}
-              type="file"
-              multiple
-              onChange={onFilesSelected}
-              style={{ display: "none" }}
-            />
-          </label>
+        <div className="chat-composer">
+          <div className="composer-left">
+            <label className="upload-btn" title="Attach files">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M7 10l5-5 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M12 5v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+              </svg>
+              <input ref={fileRef} type="file" multiple onChange={onFilesSelected} className="hidden-file-input" />
+            </label>
+          </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <div className="composer-middle">
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message — Enter to send, Shift+Enter for a newline"
+              placeholder="Type your message — Enter to send, Shift+Enter for newline"
+              className="composer-textarea"
               rows={2}
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                border: "1px solid #e6edf3",
-                resize: "none",
-                fontSize: 14
-              }}
             />
             {files.length > 0 && (
-              <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="attached-list" aria-live="polite">
                 {files.map((f, idx) => (
-                  <div key={idx} style={{
-                    background: "#eef2ff",
-                    padding: "6px 8px",
-                    borderRadius: 8,
-                    display: "inline-flex",
-                    gap: 8,
-                    alignItems: "center",
-                    fontSize: 13
-                  }}>
-                    <span>{f.name}</span>
-                    <button onClick={() => removeSelectedFile(idx)} style={{
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      color: "#0f172a"
-                    }}>✕</button>
+                  <div key={idx} className="file-pill">
+                    <span className="file-name">{f.name}</span>
+                    <button onClick={() => removeSelectedFile(idx)} className="file-remove" aria-label={`Remove ${f.name}`}>
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <button
-            onClick={sendMessage}
-            style={{
-              background: "#0ea5e9",
-              color: "white",
-              border: "none",
-              padding: "10px 14px",
-              borderRadius: 8,
-              cursor: "pointer"
-            }}
-            disabled={isLoading}
-          >
-            Send
-          </button>
+          <div className="composer-right">
+            <button onClick={sendMessage} className="send-btn" disabled={isLoading} aria-label="Send message">
+              Send
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* inline keyframes fallback */}
       <style jsx>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0.25; transform: translateY(0); }
-          50% { opacity: 1; transform: translateY(-2px); }
-          100% { opacity: 0.25; transform: translateY(0); }
+        @keyframes bounceDots {
+          0% { transform: translateY(0); opacity: 0.4; }
+          50% { transform: translateY(-4px); opacity: 1; }
+          100% { transform: translateY(0); opacity: 0.4; }
         }
       `}</style>
     </main>
