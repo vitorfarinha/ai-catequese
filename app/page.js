@@ -9,7 +9,7 @@ export default function Page() {
     {
       role: "assistant",
       content:
-        "Hello — I'm your school tutor. Ask a question and I'll guide your thinking. I follow the Socratic method and never give direct answers to homework or tests."
+        "Hello — I'm your school AI tutor. Ask a question and I'll guide your thinking."
     }
   ]);
   const [input, setInput] = useState("");
