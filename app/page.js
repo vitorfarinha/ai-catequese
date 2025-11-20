@@ -120,7 +120,7 @@ export default function Page() {
       <div className="chat-shell">
         <header className="chat-header">
           <div className="brand">SAIS AI Tutor</div>
-          <div className="meta">Socratic • English by default</div>
+          <div className="meta">v2</div>
         </header>
 
         <div className="chat-body" role="log" aria-live="polite">
