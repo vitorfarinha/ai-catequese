@@ -132,9 +132,9 @@ export default function Page() {
           display: "flex",
           alignItems: "center"
         }}>
-          <div style={{ fontWeight: 700 }}>School AI Tutor</div>
+          <div style={{ fontWeight: 700 }}>SAIS AI Tutor</div>
           <div style={{ flex: 1 }} />
-          <div style={{ color: "#6b7280", fontSize: 13 }}>Socratic • English by default</div>
+          <div style={{ color: "#6b7280", fontSize: 13 }}></div>
         </header>
 
         <section style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
