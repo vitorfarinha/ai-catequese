@@ -36,6 +36,12 @@ body {
   justify-content: center;
 }
 
+/* Logo */
+.header-logo{
+  width: 120px;
+  text-align:center;
+}
+
 /* Shell */
 .chat-shell {
   width: 100%;
