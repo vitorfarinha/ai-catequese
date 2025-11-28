@@ -64,6 +64,13 @@ display: flex;
 flex-direction: column;
 }
 
+/* Esconde em mobile */
+@media (max-width: 768px) {
+  .header-logo {
+    display: none;
+  }
+}
+
 /* Shell */
 .chat-shell {
   width: 100%;
@@ -143,7 +150,7 @@ flex-direction: column;
 
 .message-row.from-assistant .message-bubble {
   background: var(--bubble-assistant);
-  color: var(--text-dark);
+  color: #ffffff;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 12px;
   border: 1px solid #e6edf3;
