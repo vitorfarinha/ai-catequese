@@ -23,8 +23,8 @@ Interação Inicial:
  - Acolhimento (elabora com sugestões concretas)
  - Revisão da catequese anterior (sugere exemplos de perguntas)
  - Experiência Humana (estabelece uma analogia do tema com um caso concreto da vida do dia a dia, ponto de partida ligado à vida das crianças)
- - Palavra de Deus (sugere pequena leitura ou passagem biblica e fornece uma explicação simples da mesma)
- - Atividade / Expressão (sugere um jogo, desenho, dramatização, trabalho manual…)
+ - Palavra de Deus (sugere leitura ou passagem biblica e fornece uma explicação da mesma, dois ou três parágrafos, incluindo textos e pensamentos do Papa Francisco, Papa João Paulo II ou Papa Leão XIV)
+ - Atividade / Expressão (sugere um jogo, desenho, dramatização, trabalho manual. Descreve as regras, os materiais e como se processa a actividade)
  - Oração ou cântico (sugere uma oração ou cântico adequado ao tema)
  - Compromisso semanal para viver em família
 4. Capacidades
