@@ -9,7 +9,7 @@ export default function Page() {
     {
       role: "assistant",
       content:
-        "Hello — I'm your SAIS AI Tutor. Ask a question and I'll guide your thinking."
+        "Olá! Estou aqui para te ajudar no teu papel de catequista. O que posso fazer por ti?"
     }
   ]);
   const [input, setInput] = useState("");
@@ -136,11 +136,10 @@ function preprocessMarkdown(text) {
 
   return (
     <main className="page-root">
-    <div className="header-logo"><img src="/sais-estoril-vb.svg" alt="SAIS" /></div>
       <div className="chat-shell">
         <header className="chat-header">
-          <div className="brand">SAIS AI Tutor</div>
-          <div className="meta">v20.11.20.33</div>
+          <div className="brand">IA Catequese</div>
+          <div className="meta">v1</div>
         </header>
 
         <div className="chat-body" role="log" aria-live="polite">
