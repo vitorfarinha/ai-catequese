@@ -136,6 +136,7 @@ function preprocessMarkdown(text) {
 
   return (
     <main className="page-root">
+<div className="header-logo"><img src="/24111357539635.jpg" alt="SAIS" /></div>
       <div className="chat-shell">
         <header className="chat-header">
           <div className="brand">IA Catequese</div>
