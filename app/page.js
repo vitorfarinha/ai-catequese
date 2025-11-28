@@ -1,4 +1,4 @@
-"use client";
+ar"use client";
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
@@ -187,7 +187,7 @@ function preprocessMarkdown(text) {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message — Enter to send, Shift+Enter for newline"
+              placeholder="Escreve a tua mensagem — Tecla Enter para aenviar, Shift+Enter para mudar de parágrafo"
               className="composer-textarea"
               rows={2}
             />
@@ -207,7 +207,7 @@ function preprocessMarkdown(text) {
 
           <div className="composer-right">
             <button onClick={sendMessage} className="send-btn" disabled={isLoading} aria-label="Send message">
-              Send
+              Enviar
             </button>
           </div>
         </div>
