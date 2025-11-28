@@ -3,8 +3,8 @@ import '../styles/globals.css';
 import { Jost, Halant } from 'next/font/google';
 
 export const metadata = {
-  title: 'School AI Tutor',
-  description: 'AI tutor MVP - Next.js 14 App Router'
+  title: 'IA Catequese',
+  description: 'IA Catequese - Next.js 14 App Router'
 };
 
 // Load Joost for headers/buttons
