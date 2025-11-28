@@ -136,9 +136,9 @@ function preprocessMarkdown(text) {
 
   return (
     <main className="page-root">
-    <div className="header-logo"><img src="/24111357539635-2.jpg" alt="Catequese Lisboa" /></div>
       <div className="chat-shell">
         <header className="chat-header">
+          <div className="header-logo"><img src="/24111357539635-2.jpg" alt="Catequese Lisboa" /></div>
           <div className="brand">IA Catequese</div>
           <div className="meta">v1</div>
         </header>
@@ -172,23 +172,13 @@ function preprocessMarkdown(text) {
         </div>
 
         <div className="chat-composer">
-          <div className="composer-left">
-            <label className="upload-btn" title="Attach files">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M7 10l5-5 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M12 5v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-              </svg>
-              <input ref={fileRef} type="file" multiple onChange={onFilesSelected} className="hidden-file-input" />
-            </label>
-          </div>
 
           <div className="composer-middle">
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Escreve a tua mensagem — Tecla Enter para aenviar, Shift+Enter para mudar de parágrafo"
+              placeholder="Escreve a tua mensagem — Tecla Enter para Enviar, Shift+Enter para mudar de parágrafo"
               className="composer-textarea"
               rows={2}
             />
