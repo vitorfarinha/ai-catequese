@@ -87,9 +87,10 @@ export async function POST(req) {
     anthropicMessages = attachFilesToLastUserMessage(anthropicMessages, fileIds);
 
     const createParams = {
+      // Claude Sonnet 5 rejects non-default temperature/top_p/top_k with a 400 —
+      // steer behaviour via the system prompt instead of sampling params.
       model: MODEL,
-      max_tokens: 700,
-      temperature: 0.6,
+      max_tokens: 1500,
       system: SYSTEM_PROMPT,
       messages: anthropicMessages
     };
