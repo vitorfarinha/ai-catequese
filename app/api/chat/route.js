@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
 // Anthropic model to use. See https://docs.claude.com/en/docs/about-claude/models
-const MODEL = 'claude-sonnet-5';
+// Haiku 4.5 is fast and inexpensive ($1/$5 per million input/output tokens vs $2-3/$10-15 for
+// Sonnet 5), and comfortably handles this kind of structured, conversational text generation.
+const MODEL = 'claude-haiku-4-5';
 
 // Beta flag required to reference previously-uploaded files (Files API) in a message.
 const FILES_BETA = 'files-api-2025-04-14';
@@ -87,10 +89,9 @@ export async function POST(req) {
     anthropicMessages = attachFilesToLastUserMessage(anthropicMessages, fileIds);
 
     const createParams = {
-      // Claude Sonnet 5 rejects non-default temperature/top_p/top_k with a 400 —
-      // steer behaviour via the system prompt instead of sampling params.
       model: MODEL,
       max_tokens: 1500,
+      temperature: 0.6,
       system: SYSTEM_PROMPT,
       messages: anthropicMessages
     };
