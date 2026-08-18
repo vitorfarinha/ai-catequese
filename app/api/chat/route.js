@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    const messages = body?.messages || [];
-    const fileIds = body?.fileIds || [];
+// Anthropic model to use. See https://docs.claude.com/en/docs/about-claude/models
+const MODEL = 'claude-sonnet-5';
 
-    const systemPrompt = `
+// Beta flag required to reference previously-uploaded files (Files API) in a message.
+const FILES_BETA = 'files-api-2025-04-14';
+
+const SYSTEM_PROMPT = `
 És um assistente que ajuda catequistas a preparar encontros de catequese para todos os anos de escolaridade. Responde sempre em português europeu.
 Interação Inicial:
  - Apresenta-te de forma calorosa;
@@ -47,20 +47,64 @@ Interação Inicial:
  - Mas podes abordar o protestantistmo, ortodoxia ou outras religiões no contexto de uma catequese, para explicações contextuais, análise de origens históricas e comparação com a Igreja Católica.
 `;
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Anthropic requires a strict user/assistant alternation and doesn't accept
+// a "system" role inside the messages array (unlike OpenAI's Chat Completions).
+function toAnthropicMessages(messages) {
+  return messages
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .map(m => ({ role: m.role, content: m.content }));
+}
 
-    const resp = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
+// Turns Files-API file IDs into document content blocks that Claude can read,
+// and attaches them to the last user turn (the one that just uploaded them).
+function attachFilesToLastUserMessage(anthropicMessages, fileIds) {
+  if (!fileIds || fileIds.length === 0) return anthropicMessages;
+
+  const lastUserIndex = [...anthropicMessages].map(m => m.role).lastIndexOf('user');
+  if (lastUserIndex === -1) return anthropicMessages;
+
+  const updated = [...anthropicMessages];
+  const original = updated[lastUserIndex];
+  const textBlock = { type: 'text', text: original.content };
+  const fileBlocks = fileIds.map(fileId => ({
+    type: 'document',
+    source: { type: 'file', file_id: fileId }
+  }));
+
+  updated[lastUserIndex] = { role: 'user', content: [textBlock, ...fileBlocks] };
+  return updated;
+}
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const messages = body?.messages || [];
+    const fileIds = body?.fileIds || [];
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    let anthropicMessages = toAnthropicMessages(messages);
+    anthropicMessages = attachFilesToLastUserMessage(anthropicMessages, fileIds);
+
+    const createParams = {
+      model: MODEL,
+      max_tokens: 700,
       temperature: 0.6,
-      max_tokens: 700
-    });
+      system: SYSTEM_PROMPT,
+      messages: anthropicMessages
+    };
 
-    const reply = resp.choices?.[0]?.message || { role:'assistant', content: 'No reply' };
-    return NextResponse.json({ reply });
+    // Only hit the beta endpoint (and pay its extra header) when files are actually attached.
+    const resp = fileIds.length > 0
+      ? await client.beta.messages.create({ ...createParams, betas: [FILES_BETA] })
+      : await client.messages.create(createParams);
+
+    const replyText = resp.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n');
+
+    return NextResponse.json({ reply: replyText || 'No reply' });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

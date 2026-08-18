@@ -11,7 +11,7 @@
     "next": "14.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "openai": "^4.36.1",
+    "@anthropic-ai/sdk": "^0.117.0",
     "react-markdown": "^8.0.7",
     "remark-gfm": "^3.0.1"
   }
