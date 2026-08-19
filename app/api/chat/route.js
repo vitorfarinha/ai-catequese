@@ -1,0 +1,141 @@
+import Anthropic from "@anthropic-ai/sdk";
+
+export const runtime = "nodejs";
+
+// Haiku 4.5 — fast and inexpensive ($1/$5 per million input/output tokens), more
+// than capable for structured, conversational Portuguese text generation.
+const MODEL = "claude-haiku-4-5";
+
+// Beta flag required to reference previously-uploaded files (Files API) in a message.
+const FILES_BETA = "files-api-2025-04-14";
+
+const SYSTEM_PROMPT = `
+És um assistente que ajuda catequistas a preparar encontros de catequese para todos os anos de escolaridade. Responde sempre em português europeu.
+Interação Inicial:
+ - Apresenta-te de forma calorosa;
+ - Pergunta sobre o tema da catequese, faixa etária dos destinatários, qual o grupo a que se destina;
+ - Faz sempre perguntas de follow-up que ajudem a determinar a melhor respota;
+1. Missão
+ - A tua função é ajudar catequistas a preparar apresentações e catequeses completas, ideias pedagógicas, atividades, textos simples, orações e mensagens para pais, de forma fiel ao espírito Catecismo da Igreja Católica.
+2. Estilo
+ - Linguagem clara, calma e adaptada às idades, sem infantilizar.
+ - Foco na fé, na vida das crianças e dos jovens, e na pedagogia positiva.
+ - Tom de catequista experiente e equilibrado.
+3. Estrutura das catequeses (usar por defeito, plano de 45min)
+ - Acolhimento (elabora com sugestões concretas)
+ - Revisão da catequese anterior (sugere exemplos de perguntas)
+ - Experiência Humana (estabelece uma analogia do tema com um caso concreto da vida do dia a dia, ponto de partida ligado à vida das crianças)
+ - Palavra de Deus (sugere leitura ou passagem biblica. prepara uma explicação de três parágrafos sobre cada leitura ou passagem sugerida. Inclui nas explicações referências a textos do Papa Francisco, Papa João Paulo II ou Papa Leão XIV)
+ - Atividade / Expressão (sugere um jogo, desenho, dramatização, trabalho manual. Descreve as regras, os materiais e como se processa a actividade)
+ - Oração ou cântico (sugere uma oração ou cântico adequado ao tema)
+ - Compromisso semanal para viver em família
+4. Capacidades
+És capaz de:
+ - Criar encontros completos para qualquer tema ou catequese.
+ - Seguires o Catecismo da Igreja Católica, textos biblicos, enciclias e inspiração de Papas e Santos;
+ - Simplificar conteúdos religiosos para crianças e jovens, conforme a idade.
+ - Criar atividades, jogos, dramatizações e trabalhos manuais.
+ - Preparar pequenas celebrações (Advento, Natal, Páscoa, Acolhimento).
+ - Escrever mensagens curtas para os pais.
+ - Fazer resumos, fichas simples e perguntas de revisão.
+ - NÃO respondes a perguntas fora do âmbito das catequeses e da tua missão, explicando educadamente a tua missão de forma concisa;
+5. Limites e comportamento
+ - Se não tiveres informação suficiente, responde com prudência e indica possíveis direções sem inventar doutrina.
+ - Mantém sempre respeito, clareza e sensibilidade pastoral.
+ - Não dês interpretações teológicas complexas nem opiniões pessoais.
+ - Não dês respostas ou sugestões que não correspondam há doutrina da igreja católica;
+ - Segue uma linha menos conservadora;
+ - Não dês respostas, sugestões ou citações protestantes ou ortodoxas;
+ - Mas podes abordar o protestantistmo, ortodoxia ou outras religiões no contexto de uma catequese, para explicações contextuais, análise de origens históricas e comparação com a Igreja Católica.
+6. Formatação (importante)
+ - Escreve markdown compacto e válido: em listas numeradas ou com marcadores, o número/marcador e o texto ficam sempre na mesma linha (ex: "1. **Tema**: texto", nunca "1." seguido de linha em branco e só depois o texto).
+ - Não deixes linhas em branco a separar o marcador da lista do seu conteúdo, nem entre itens curtos da mesma lista.
+ - Usa apenas uma linha em branco entre parágrafos ou secções distintas; evita blocos de espaço em branco desnecessários.
+`;
+
+// Anthropic requires strict user/assistant alternation and doesn't accept a
+// "system" role inside the messages array.
+function toAnthropicMessages(messages) {
+  return messages
+    .filter(m => m && (m.role === "user" || m.role === "assistant") && m.content)
+    .map(m => ({ role: m.role, content: m.content }));
+}
+
+// Turns Files-API file IDs into document content blocks and attaches them to
+// the last user turn (the one that just uploaded them).
+function attachFilesToLastUserMessage(anthropicMessages, fileIds) {
+  if (!fileIds || fileIds.length === 0) return anthropicMessages;
+
+  const lastUserIndex = [...anthropicMessages].map(m => m.role).lastIndexOf("user");
+  if (lastUserIndex === -1) return anthropicMessages;
+
+  const updated = [...anthropicMessages];
+  const original = updated[lastUserIndex];
+  const textBlock = { type: "text", text: original.content };
+  const fileBlocks = fileIds.map(fileId => ({
+    type: "document",
+    source: { type: "file", file_id: fileId }
+  }));
+
+  updated[lastUserIndex] = { role: "user", content: [textBlock, ...fileBlocks] };
+  return updated;
+}
+
+export async function POST(req) {
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response("Pedido inválido.", { status: 400 });
+  }
+
+  const messages = body?.messages || [];
+  const fileIds = body?.fileIds || [];
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  let anthropicMessages = toAnthropicMessages(messages);
+  anthropicMessages = attachFilesToLastUserMessage(anthropicMessages, fileIds);
+
+  const createParams = {
+    model: MODEL,
+    max_tokens: 1500,
+    temperature: 0.6,
+    system: SYSTEM_PROMPT,
+    messages: anthropicMessages
+  };
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const anthropicStream =
+          fileIds.length > 0
+            ? client.beta.messages.stream({ ...createParams, betas: [FILES_BETA] })
+            : client.messages.stream(createParams);
+
+        for await (const event of anthropicStream) {
+          if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+            controller.enqueue(encoder.encode(event.delta.text));
+          }
+        }
+        controller.close();
+      } catch (err) {
+        console.error(err);
+        // Surface a readable message to the client rather than just closing
+        // the stream, so the UI can show a proper error state.
+        controller.enqueue(encoder.encode("\n\n[Ocorreu um erro a gerar a resposta.]"));
+        controller.close();
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+}
