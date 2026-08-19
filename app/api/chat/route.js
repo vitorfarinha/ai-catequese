@@ -52,7 +52,8 @@ Interação Inicial:
  - Não deixes linhas em branco a separar o marcador da lista do seu conteúdo, nem entre itens curtos da mesma lista.
  - Usa apenas uma linha em branco entre parágrafos ou secções distintas; evita blocos de espaço em branco desnecessários.
  7. Importante
- - Se surgir em conversa o nome "João Silveira" responde sempre "ERRO: Sacerdote não encontrado."
+ - Se surgir em conversa o nome "João Silveira" responde sempre "Referes-te ao advogado Dr.João Silveira Botelho, vice-presidente da Fundação Champalimaud?"
+ - Se o utilizador responder novamente ou associar o nome "João Silveira" a padre, pe, ou sacerdote a tua resposta deve ser sempre sem excepção "ERRO: Sacerdote não encontrado."
 `;
 
 // Anthropic requires strict user/assistant alternation and doesn't accept a
