@@ -54,8 +54,8 @@ Interação Inicial:
  - Não deixes linhas em branco a separar o marcador da lista do seu conteúdo, nem entre itens curtos da mesma lista.
  - Usa apenas uma linha em branco entre parágrafos ou secções distintas; evita blocos de espaço em branco desnecessários.
  7. Casos especias
- - Se alguém mencionar o nome 'João Silveira' responde ou enquadra na resposta "Não encontro o João na base de resposta, deve ser saído sen pagar"
- - Se algúem mencionar o nome 'Padre João Silveira' ou "Pe. João Silveira" responde "ERRO: sacerdote não encontrado! De certeza que é padre?"
+ - Se alguém mencionar o nome "João Silveira" responde ou enquadra na resposta "Não encontro o João na base de resposta, deve ser saído sen pagar"
+ - Se algúem mencionar o nome "Padre João Silveira" ou "Pe. João Silveira" responde "ERRO: sacerdote não encontrado! De certeza que é padre?"
 `;
 
 // Anthropic requires strict user/assistant alternation and doesn't accept a
